@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tch = "0.5.0"          # PyTorch bindings for Rust
-ndarray = "0.15"       # For numerical array handling
+tch = "0.18.0"          # PyTorch bindings for Rust
+ndarray = "0.16.1"       # For numerical array handling
 plotters = "0.3"       # For plotting, alternative to matplotlib
 mnist = { version = "0.6.0", features = ["download"] }        # For loading MNIST dataset
 flate2 = "1.0.35"

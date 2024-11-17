@@ -1,5 +1,6 @@
 use std::fs::File;
-use std::io::Read;
+use std::io::{BufReader, Read};
+use std::path::Path;
 use mnist::{Mnist, MnistBuilder};
 use ndarray::{s, Array, Array2, Array3};
 use plotters::prelude::*;
@@ -152,13 +153,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut accuracies = Vec::new();
 
     for epoch in 1..=epochs {
-        let x_train_tensor = Tensor::of_slice(x_train.as_slice().unwrap())
-            .to_device(vs.device())
-            .reshape(&[50_000, input_dim as i64]);
-        let y_train_tensor = Tensor::of_slice(y_train.as_slice().unwrap())
-            .to_device(vs.device())
-            .to_kind(Kind::Int64)
-            .reshape(&[50_000]);
+        let x_train_tensor = Tensor::f_from_slice(x_train.as_slice().unwrap())
+    .unwrap()  // This extracts the Tensor from the Result
+    .to_device(vs.device())
+    .reshape(&[50_000, input_dim as i64]);
+
+    let y_train_tensor = Tensor::f_from_slice(y_train.as_slice().unwrap())?
+    .to_device(vs.device())
+    .to_kind(Kind::Int64)
+    .reshape(&[50_000]);
+
 
         let preds = net.forward_t(&x_train_tensor, true);
         let loss = preds.cross_entropy_for_logits(&y_train_tensor);
@@ -171,15 +175,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             .mean(Kind::Float)
             .double_value(&[]);
 
-        losses.push(f32::from(loss.shallow_clone()));
+            losses.push(loss.double_value(&[]) as f32);
+
         accuracies.push(accuracy as f32 * 100.0);
 
         println!(
             "Epoch: {:2} | Loss: {:.4} | Accuracy: {:.2}%",
             epoch,
-            f32::from(loss),
+            loss.double_value(&[]) as f32,
             accuracy * 100.0
         );
+        
     }
 
     plot_metrics(&losses, &accuracies)?;
