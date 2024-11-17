@@ -1,6 +1,5 @@
 use std::fs::File;
-use std::io::{BufReader, Read};
-use std::path::Path;
+use std::io::Read;
 use mnist::{Mnist, MnistBuilder};
 use ndarray::{s, Array, Array2, Array3};
 use plotters::prelude::*;
