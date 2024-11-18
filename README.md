@@ -55,10 +55,14 @@ cargo run --release
 
 The project relies on the following libraries:
 
-- [tch-rs](https://github.com/LaurentMazare/tch-rs): PyTorch bindings for Rust.
+- [tch-rs](https://github.com/LaurentMazare/tch): PyTorch bindings for Rust.
+- [tch-rs](https://crates.io/crates/tch): Crate PyTorch bindings for Rust.
 - [ndarray](https://docs.rs/ndarray/latest/ndarray/): For numerical array operations.
+- [ndarray](https://crates.io/crates/ndarray): Crate For numerical array operations.
 - [mnist](https://docs.rs/mnist/latest/mnist/): For MNIST dataset handling.
+- [mnist](https://crates.io/crates/mnist): Crate For MNIST dataset handling.
 - [plotters](https://docs.rs/plotters/latest/plotters/): For generating training metric plots.
+- [plotters](https://crates.io/crates/plotters):Crate For generating training metric plots.
 
 ## Data Sources
 
@@ -66,6 +70,11 @@ The project utilizes datasets from the following sources:
 
 - [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html): A dataset for image classification tasks.
 - [MNIST](https://github.com/zalandoresearch/fashion-mnist): A dataset for handwritten digit recognition.
+  
+## Download LibTorch for Local setup
+- [LibTorch](https://pytorch.org/get-started/locally/): required to run and compile.
+if you are using windows add **LibTorch** folder to  **"C:\LibTorch"** and to path 
+
 
 ## Contributing
 
