@@ -76,6 +76,61 @@ The project utilizes datasets from the following sources:
 if you are using windows add **LibTorch** folder to  **"C:\LibTorch"** and to path 
 
 
+
+### Where to Get Data for `load_other_data`
+
+You can use data from various sources, depending on your use case. Here are some suggestions:
+
+1. **Open Data Repositories**
+   - [Kaggle](https://www.kaggle.com/): Hosts datasets across numerous fields such as machine learning, finance, and healthcare.
+   - [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/index.php): Offers classic datasets for experimentation.
+   - [Data.gov](https://www.data.gov/): U.S. government open data portal.
+   - [Google Dataset Search](https://datasetsearch.research.google.com/): Search datasets across the web.
+
+2. **Synthetic Data**
+   - Generate data using Python libraries like `numpy` or `pandas`.
+   - Useful for testing and debugging when no real-world data is available.
+
+3. **Custom Data**
+   - Collect your own data relevant to your project using surveys, sensors, or APIs.
+
+---
+
+### Formatting and Preparing Data for `load_other_data`
+
+The function expects two CSV files:
+1. `features.csv`: Contains input data (independent variables).
+2. `labels.csv`: Contains corresponding labels or output data (dependent variables).
+
+#### Steps to Prepare the Data:
+1. **Ensure Proper File Names and Structure**
+   - Save the input features in a file named `features.csv`.
+   - Save the labels in a file named `labels.csv`.
+   - Place these files in the same directory.
+
+2. **Data Format for `features.csv`**
+   - Each row represents one data point.
+   - Each column represents a feature.
+   - Ensure numeric values for all features.
+   - Example:
+     ```
+     1.5, 2.3, 3.1
+     4.2, 5.1, 6.3
+     7.4, 8.2, 9.0
+     ```
+
+3. **Data Format for `labels.csv`**
+   - Each row contains a single numeric label corresponding to a row in `features.csv`.
+   - Ensure the labels align with the rows in `features.csv`.
+   - Example:
+     ```
+     0
+     1
+     0
+     ```
+
+
+
 ## Contributing
 
 Contributions are welcome! Feel free to fork this repository, make changes, and submit a pull request.
