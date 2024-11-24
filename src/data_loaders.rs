@@ -4,7 +4,7 @@ use mnist::{Mnist, MnistBuilder}; // MNIST crate for downloading and processing 
 use ndarray::{s, Array, Array2, Array3, Axis, stack}; // ndarray crate for multi-dimensional arrays and operations.
 use csv::Reader; // CSV crate for reading data from CSV files.
 use image::imageops::{resize, FilterType}; // Image crate for resizing images and specifying filters.
-
+use csv::{ReaderBuilder, StringRecord};
 // Function to load and normalize the MNIST dataset
 pub fn load_mnist() -> (Array2<f32>, Array2<f32>, Array2<f32>, Array2<f32>) {
     println!("Attempting to download and extract MNIST dataset...");
@@ -85,39 +85,54 @@ pub fn load_cifar100(data_dir: &str) -> (Array3<u8>, Vec<u8>, Array3<u8>, Vec<u8
     (train_images, train_labels, test_images, test_labels)
 }
 
-// Function to load a generic dataset from CSV files.
-pub fn load_other_data(data_dir: &str) -> (Array2<f32>, Array2<f32>) {
-    let features_path = format!("{}/features.csv", data_dir); // Path to features CSV.
-    let labels_path = format!("{}/labels.csv", data_dir); // Path to labels CSV.
 
-    // Load features from the CSV file.
-    let features = read_csv_to_array2(&features_path);
-    // Load labels from the CSV file.
-    let labels = read_csv_to_array2(&labels_path);
 
-    println!("Successfully loaded other data from: {}", data_dir);
 
-    // Return features and labels arrays.
-    (features, labels)
+// Function to load a dataset directly from a CSV file.
+// Assumes that the labels are in the last column of the data.
+pub fn load_data(data_file: &str) -> (Array2<f32>, Array2<f32>) {
+    // Load the dataset from the CSV file.
+    let data = read_csv_to_array2(data_file);
+
+    println!("Successfully loaded data from: {}", data_file);
+
+    // Split into features and labels
+    let num_cols = data.shape()[1];
+    let x_data = data.slice(s![.., ..num_cols-1]).to_owned(); // All columns except the last
+    let y_data = data.slice(s![.., num_cols-1..]).to_owned(); // Only the last column for labels
+
+    (x_data, y_data)
 }
-
-// Helper function to read a CSV file and convert it to Array2<f32>.
 fn read_csv_to_array2(file_path: &str) -> Array2<f32> {
-    let mut rdr = Reader::from_path(file_path).expect("Failed to open CSV file"); // Open the CSV file.
-    let mut data = vec![]; // Vector to hold data rows.
+    let mut rdr = Reader::from_path(file_path).expect("Failed to open CSV file");
+    let mut data = vec![];
 
     // Read each record in the CSV file.
-    for result in rdr.records() {
-        let record = result.expect("Failed to read record"); // Read a row.
+    let mut num_rows = 0;
+    for (i, result) in rdr.records().enumerate() {
+        let record = result.expect("Failed to read record");
+
+        // Print the record and its length to debug
+        println!("Row {}: {:?}, Length: {}", i + 1, record, record.len());
+
         let row: Vec<f32> = record
             .iter()
-            .map(|x| x.parse::<f32>().expect("Failed to parse float")) // Convert each value to f32.
-            .collect(); // Collect row values into a vector.
-        data.extend(row); // Append the row to data.
+            .map(|x| x.parse::<f32>().expect("Failed to parse float"))
+            .collect();
+
+        if num_rows == 0 {
+            num_rows = row.len(); // Set number of columns based on the first row
+        }
+
+        // Ensure all rows have the same number of columns
+        if row.len() != num_rows {
+            eprintln!("Warning: Row {} has a different number of columns (expected {})", i + 1, num_rows);
+        }
+
+        data.extend(row); // Append the row to data
     }
 
-    let num_rows = rdr.records().count(); // Count the number of rows.
-    let num_cols = data.len() / num_rows; // Calculate the number of columns.
-    Array2::from_shape_vec((num_rows, num_cols), data).expect("Failed to convert CSV data to Array2")
-    // Convert the data vector into a 2D array.
+    let num_cols = data.len() / num_rows;
+    Array2::from_shape_vec((data.len() / num_cols, num_cols), data)
+        .expect("Failed to convert CSV data to Array2")
 }

@@ -9,7 +9,9 @@ use tch::{ // Import Torch bindings for Rust (Tch) for tensor operations and dee
 
 // Import custom data loader modules.
 mod data_loaders;
-use crate::data_loaders::{load_cifar100, load_mnist, load_other_data}; 
+mod process_csv_data;
+use crate::data_loaders::{load_cifar100, load_mnist, load_data}; 
+use  process_csv_data::process_all_csvs_in_folder;
 
 // Function to plot training metrics (loss and accuracy).
 fn plot_metrics(losses: &[f32], accuracies: &[f32]) -> Result<(), Box<dyn Error>> {
@@ -54,6 +56,12 @@ fn plot_metrics(losses: &[f32], accuracies: &[f32]) -> Result<(), Box<dyn Error>
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let input_folder = "csv_data"; // Folder containing the datasets
+    let output_folder = "csv_pro_data"; // Folder to save processed datasets
+    let label_column = "id"; // Column to use as labels (update for each dataset)
+
+   //process_all_csvs_in_folder(input_folder, output_folder, label_column);
+
     let mut input = String::new(); // Variable for user input.
     println!("Choose the dataset to use:");
     println!("1 for MNIST, 2 for CIFAR-100, 3 for Custom CSV Data"); 
@@ -90,12 +98,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             )
         }
         3 => { // Load custom dataset.
-            println!("Enter the directory path for the custom dataset:");
+            //println!("Enter the directory path for the custom dataset:");
             input.clear();
-            std::io::stdin().read_line(&mut input)?; // Read the custom dataset path.
-            let data_dir = input.trim();
+            //std::io::stdin().read_line(&mut input)?; // Read the custom dataset path.
+            let data_dir = "csv_data/data.csv";
 
-            let (x_data, y_data) = load_other_data(data_dir); // Load custom dataset.
+            let (x_data, y_data) = load_data(data_dir); // Load custom dataset.
 
             // Split into training (80%) and testing (20%) sets.
             let train_size = (x_data.shape()[0] as f32 * 0.8).round() as usize;
