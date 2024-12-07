@@ -6,6 +6,8 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import classification_report
+
 
 # Function to apply the sigmoid function element-wise to normalize dataset values
 def squash(value):
@@ -113,19 +115,45 @@ def plot_metrics(losses, accuracies):
     plt.savefig("training_metrics.png")
     plt.show()
 
-# Evaluate model and display confusion matrix
+
+# Evaluate model and display confusion matrix and additional metrics
 def evaluate_model(model, x_test, y_test, device):
     model.eval()
     with torch.no_grad():
+        # Perform predictions
         test_outputs = model(x_test)
         predictions = torch.argmax(test_outputs, dim=1)
 
-    # Calculate and display confusion matrix
-    cm = confusion_matrix(y_test.cpu().numpy(), predictions.cpu().numpy())
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.arange(len(np.unique(y_test.cpu().numpy()))))
+    # Convert predictions and true labels to NumPy arrays
+    y_true = y_test.cpu().numpy()
+    y_pred = predictions.cpu().numpy()
+
+    # Calculate confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+
+    # Display confusion matrix
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.arange(len(np.unique(y_true))))
     disp.plot(cmap=plt.cm.Blues)
     plt.title("Confusion Matrix")
     plt.show()
+
+    # Calculate and display classification report
+    report = classification_report(y_true, y_pred, digits=4)
+    print("\nClassification Report:\n")
+    print(report)
+
+    # Calculate specificity for each class
+    specificity = []
+    for i in range(len(cm)):
+        tn = cm.sum() - (cm[i, :].sum() + cm[:, i].sum() - cm[i, i])  # True negatives
+        fp = cm[:, i].sum() - cm[i, i]  # False positives
+        specificity.append(tn / (tn + fp) if (tn + fp) > 0 else 0)
+
+    # Print specificity for each class
+    print("\nSpecificity (per class):")
+    for i, spec in enumerate(specificity):
+        print(f"Class {i}: {spec:.4f}")
+
 
 # Main function
 def main():

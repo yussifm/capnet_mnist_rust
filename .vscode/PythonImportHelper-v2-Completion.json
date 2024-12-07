@@ -86,6 +86,14 @@
         "documentation": {}
     },
     {
+        "label": "classification_report",
+        "importPath": "sklearn.metrics",
+        "description": "sklearn.metrics",
+        "isExtraImport": true,
+        "detail": "sklearn.metrics",
+        "documentation": {}
+    },
+    {
         "label": "NeuralNet",
         "kind": 6,
         "importPath": "python_version.main",
@@ -162,7 +170,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def evaluate_model(model, x_test, y_test, device):\n    model.eval()\n    with torch.no_grad():\n        test_outputs = model(x_test)\n        predictions = torch.argmax(test_outputs, dim=1)\n    # Calculate and display confusion matrix\n    cm = confusion_matrix(y_test.cpu().numpy(), predictions.cpu().numpy())\n    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.arange(len(np.unique(y_test.cpu().numpy()))))\n    disp.plot(cmap=plt.cm.Blues)\n    plt.title(\"Confusion Matrix\")",
+        "peekOfCode": "def evaluate_model(model, x_test, y_test, device):\n    model.eval()\n    with torch.no_grad():\n        # Perform predictions\n        test_outputs = model(x_test)\n        predictions = torch.argmax(test_outputs, dim=1)\n    # Convert predictions and true labels to NumPy arrays\n    y_true = y_test.cpu().numpy()\n    y_pred = predictions.cpu().numpy()\n    # Calculate confusion matrix",
         "detail": "python_version.main",
         "documentation": {}
     },
