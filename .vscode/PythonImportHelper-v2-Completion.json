@@ -1,0 +1,144 @@
+[
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "pandas",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pandas",
+        "description": "pandas",
+        "detail": "pandas",
+        "documentation": {}
+    },
+    {
+        "label": "torch",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch",
+        "description": "torch",
+        "detail": "torch",
+        "documentation": {}
+    },
+    {
+        "label": "torch.nn",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch.nn",
+        "description": "torch.nn",
+        "detail": "torch.nn",
+        "documentation": {}
+    },
+    {
+        "label": "torch.optim",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch.optim",
+        "description": "torch.optim",
+        "detail": "torch.optim",
+        "documentation": {}
+    },
+    {
+        "label": "datasets",
+        "importPath": "torchvision",
+        "description": "torchvision",
+        "isExtraImport": true,
+        "detail": "torchvision",
+        "documentation": {}
+    },
+    {
+        "label": "transforms",
+        "importPath": "torchvision",
+        "description": "torchvision",
+        "isExtraImport": true,
+        "detail": "torchvision",
+        "documentation": {}
+    },
+    {
+        "label": "matplotlib.pyplot",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "matplotlib.pyplot",
+        "description": "matplotlib.pyplot",
+        "detail": "matplotlib.pyplot",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "NeuralNet",
+        "kind": 6,
+        "importPath": "python_version.main",
+        "description": "python_version.main",
+        "peekOfCode": "class NeuralNet(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super(NeuralNet, self).__init__()\n        # Define the network layers\n        self.fc1 = nn.Linear(input_dim, 256)  # First fully connected layer\n        self.fc2 = nn.Linear(256, output_dim)  # Second fully connected layer\n        self.relu = nn.ReLU()  # Activation function\n    def forward(self, x):\n        # Forward pass through the network\n        x = self.relu(self.fc1(x))",
+        "detail": "python_version.main",
+        "documentation": {}
+    },
+    {
+        "label": "squash",
+        "kind": 2,
+        "importPath": "python_version.main",
+        "description": "python_version.main",
+        "peekOfCode": "def squash(value):\n    return 1.0 / (1.0 + np.exp(-value))\n# Normalizes a dataset using the squash function\ndef normalize_dataset(dataset):\n    return np.vectorize(squash)(dataset)\n# Load the MNIST dataset, preprocess it, and normalize pixel values\n# def load_mnist():\n#     print(\"Loading MNIST dataset...\")\n#     transform = transforms.Compose([\n#         transforms.ToTensor(),  # Convert images to PyTorch tensors",
+        "detail": "python_version.main",
+        "documentation": {}
+    },
+    {
+        "label": "normalize_dataset",
+        "kind": 2,
+        "importPath": "python_version.main",
+        "description": "python_version.main",
+        "peekOfCode": "def normalize_dataset(dataset):\n    return np.vectorize(squash)(dataset)\n# Load the MNIST dataset, preprocess it, and normalize pixel values\n# def load_mnist():\n#     print(\"Loading MNIST dataset...\")\n#     transform = transforms.Compose([\n#         transforms.ToTensor(),  # Convert images to PyTorch tensors\n#         transforms.Normalize((0.5,), (0.5,))  # Normalize with mean=0.5 and std=0.5\n#     ])\n#     # Download and prepare train and test datasets",
+        "detail": "python_version.main",
+        "documentation": {}
+    },
+    {
+        "label": "load_mnist",
+        "kind": 2,
+        "importPath": "python_version.main",
+        "description": "python_version.main",
+        "peekOfCode": "def load_mnist():\n    print(\"Loading Fashion MNIST dataset...\")\n    transform = transforms.Compose([\n        transforms.ToTensor(),\n        transforms.Normalize((0.5,), (0.5,))\n    ])\n    train_dataset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)\n    test_dataset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)\n    x_train = train_dataset.data.numpy().reshape(-1, 28 * 28) / 255.0\n    y_train = train_dataset.targets.numpy()",
+        "detail": "python_version.main",
+        "documentation": {}
+    },
+    {
+        "label": "load_data",
+        "kind": 2,
+        "importPath": "python_version.main",
+        "description": "python_version.main",
+        "peekOfCode": "def load_data(file_path):\n    print(f\"Loading data from {file_path}...\")\n    data = pd.read_csv(file_path)\n    # Drop non-numeric columns if any\n    data = data.select_dtypes(include=['number'])\n    # Handle missing values\n    data = data.fillna(0)\n    # Convert to numpy arrays\n    x_data = data.iloc[:, :-1].to_numpy(dtype=float)\n    y_data = data.iloc[:, -1].to_numpy(dtype=int)",
+        "detail": "python_version.main",
+        "documentation": {}
+    },
+    {
+        "label": "plot_metrics",
+        "kind": 2,
+        "importPath": "python_version.main",
+        "description": "python_version.main",
+        "peekOfCode": "def plot_metrics(losses, accuracies):\n    plt.figure(figsize=(10, 6))\n    epochs = range(1, len(losses) + 1)\n    plt.plot(epochs, losses, label=\"Loss\", color=\"red\")  # Plot loss\n    plt.plot(epochs, accuracies, label=\"Accuracy\", color=\"blue\")  # Plot accuracy\n    plt.title(\"Training Loss and Accuracy\")\n    plt.xlabel(\"Epochs\")\n    plt.ylabel(\"Value\")\n    plt.legend()\n    plt.savefig(\"training_metrics.png\")  # Save plot to a file",
+        "detail": "python_version.main",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "python_version.main",
+        "description": "python_version.main",
+        "peekOfCode": "def main():\n    # Specify input and output folder paths for CSV datasets\n    input_folder = \"csv_data\"\n    output_folder = \"csv_pro_data\"\n    label_column = \"id\"\n    # User selects dataset type and number of training epochs\n    dataset_choice = int(input(\"Choose the dataset to use (1 for MNIST, 2 for Custom CSV Data): \").strip())\n    epochs = int(input(\"Enter the number of training epochs: \").strip())\n    # Load dataset based on user choice\n    if dataset_choice == 1:",
+        "detail": "python_version.main",
+        "documentation": {}
+    }
+]

@@ -18,23 +18,41 @@ def normalize_dataset(dataset):
     return np.vectorize(squash)(dataset)
 
 # Load the MNIST dataset, preprocess it, and normalize pixel values
-def load_mnist():
-    print("Loading MNIST dataset...")
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # Convert images to PyTorch tensors
-        transforms.Normalize((0.5,), (0.5,))  # Normalize with mean=0.5 and std=0.5
-    ])
-    # Download and prepare train and test datasets
-    train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+# def load_mnist():
+#     print("Loading MNIST dataset...")
+#     transform = transforms.Compose([
+#         transforms.ToTensor(),  # Convert images to PyTorch tensors
+#         transforms.Normalize((0.5,), (0.5,))  # Normalize with mean=0.5 and std=0.5
+#     ])
+#     # Download and prepare train and test datasets
+#     train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+#     test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
 
-    # Flatten the images and scale pixel values to [0, 1]
+#     # Flatten the images and scale pixel values to [0, 1]
+#     x_train = train_dataset.data.numpy().reshape(-1, 28 * 28) / 255.0
+#     y_train = train_dataset.targets.numpy()
+#     x_test = test_dataset.data.numpy().reshape(-1, 28 * 28) / 255.0
+#     y_test = test_dataset.targets.numpy()
+
+#     return normalize_dataset(x_train), y_train, normalize_dataset(x_test), y_test
+
+# fASHION-MNIST dataset UNCOMMENT THIS 
+def load_mnist():
+    print("Loading Fashion MNIST dataset...")
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,))
+    ])
+    train_dataset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+    test_dataset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+    
     x_train = train_dataset.data.numpy().reshape(-1, 28 * 28) / 255.0
     y_train = train_dataset.targets.numpy()
     x_test = test_dataset.data.numpy().reshape(-1, 28 * 28) / 255.0
     y_test = test_dataset.targets.numpy()
 
     return normalize_dataset(x_train), y_train, normalize_dataset(x_test), y_test
+
 
 # Load custom datasets from CSV files
 def load_data(file_path):
