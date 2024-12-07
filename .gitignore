@@ -7,3 +7,5 @@
 /cifar-100-binary
 /*.csv
 *.csv
+/*env
+*env
