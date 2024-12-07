@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
+import os
+
 
 # Function to apply the sigmoid function element-wise to normalize dataset values
 def squash(value):
@@ -37,10 +39,20 @@ def load_mnist():
 # Load custom datasets from CSV files
 def load_data(file_path):
     print(f"Loading data from {file_path}...")
-    data = pd.read_csv(file_path).values  # Read data from CSV file
-    x_data = data[:, :-1]  # Features are all columns except the last
-    y_data = data[:, -1]  # Labels are in the last column
+    data = pd.read_csv(file_path)
+
+    # Drop non-numeric columns if any
+    data = data.select_dtypes(include=['number'])
+
+    # Handle missing values
+    data = data.fillna(0)
+
+    # Convert to numpy arrays
+    x_data = data.iloc[:, :-1].to_numpy(dtype=float)
+    y_data = data.iloc[:, -1].to_numpy(dtype=int)
+
     return x_data, y_data
+
 
 # Define a simple feedforward neural network
 class NeuralNet(nn.Module):
@@ -88,6 +100,7 @@ def main():
         input_dim, output_dim = 784, 10  # Input and output dimensions
     elif dataset_choice == 2:
         # Use custom dataset from a CSV file
+        print(os.listdir('data'))
         file_path = input("Enter the path to the CSV file: ").strip()
         x_data, y_data = load_data(file_path)
         train_size = int(0.8 * len(x_data))  # 80-20 train-test split
