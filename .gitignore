@@ -2,6 +2,7 @@
 /data/
 /cifar-100-binary/
 /data
+*data
 /csv_data
 /csv_data/
 /cifar-100-binary
