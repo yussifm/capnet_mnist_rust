@@ -70,9 +70,22 @@ def load_cifar10():
 # Load custom dataset from CSV
 def load_data(file_path):
     print(f"Loading data from {file_path}...")
-    data = pd.read_csv(file_path).values
-    x_data = data[:, :-1]
-    y_data = data[:, -1]
+    data = pd.read_csv(file_path)
+
+    # Drop unnecessary columns
+    if 'id' in data.columns:
+        data = data.drop(columns=['id'])
+    if 'Unnamed: 32' in data.columns:
+        data = data.drop(columns=['Unnamed: 32'])
+
+    # Convert labels to numeric if necessary
+    if 'diagnosis' in data.columns:
+        data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
+
+    # Separate features and labels
+    x_data = data.iloc[:, 1:].values  # Features
+    y_data = data.iloc[:, 0].values  # Labels
+
     return x_data / 255.0, y_data
 
 # Define the neural network
@@ -115,7 +128,6 @@ def evaluate_model(model, x_test, y_test, device):
     plt.show()
 
 # Main function
-# Main function
 def main():
     dataset_choice = int(input(
         "Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): ").strip())
@@ -149,7 +161,6 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     criterion = nn.CrossEntropyLoss()
 
-    # Flatten the input data
     x_train = torch.tensor(x_train.reshape(-1, input_dim), dtype=torch.float32).to(device)
     x_test = torch.tensor(x_test.reshape(-1, input_dim), dtype=torch.float32).to(device)
     y_train = torch.tensor(y_train, dtype=torch.long).to(device)
@@ -182,6 +193,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

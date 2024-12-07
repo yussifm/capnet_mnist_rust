@@ -144,7 +144,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def load_data(file_path):\n    print(f\"Loading data from {file_path}...\")\n    data = pd.read_csv(file_path).values\n    x_data = data[:, :-1]\n    y_data = data[:, -1]\n    return x_data / 255.0, y_data\n# Define the neural network\nclass NeuralNet(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super(NeuralNet, self).__init__()",
+        "peekOfCode": "def load_data(file_path):\n    print(f\"Loading data from {file_path}...\")\n    data = pd.read_csv(file_path)\n    # Drop unnecessary columns\n    if 'id' in data.columns:\n        data = data.drop(columns=['id'])\n    if 'Unnamed: 32' in data.columns:\n        data = data.drop(columns=['Unnamed: 32'])\n    # Convert labels to numeric if necessary\n    if 'diagnosis' in data.columns:",
         "detail": "python_version.main",
         "documentation": {}
     },
