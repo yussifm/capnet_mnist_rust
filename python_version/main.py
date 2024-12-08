@@ -7,6 +7,8 @@ from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.metrics import classification_report
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 
 # Function to apply the sigmoid function element-wise to normalize dataset values
@@ -69,26 +71,54 @@ def load_cifar10():
 
     return x_train, y_train, x_test, y_test
 
-# Load custom dataset from CSV
-def load_data(file_path):
-    print(f"Loading data from {file_path}...")
-    data = pd.read_csv(file_path)
+# Load custom training and testing datasets from CSV
+def load_data(train_file_path, test_file_path, task_type='classification'):
+    """
+    Load and preprocess data from CSV files.
 
-    # Drop unnecessary columns
-    if 'id' in data.columns:
-        data = data.drop(columns=['id'])
-    if 'Unnamed: 32' in data.columns:
-        data = data.drop(columns=['Unnamed: 32'])
+    Args:
+        train_file_path (str): Path to the training dataset CSV.
+        test_file_path (str): Path to the testing dataset CSV.
+        task_type (str): Either 'classification' or 'regression'.
 
-    # Convert labels to numeric if necessary
-    if 'diagnosis' in data.columns:
-        data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
+    Returns:
+        x_train, y_train, x_test, y_test: Preprocessed datasets.
+    """
+    print(f"Loading training data from {train_file_path}...")
+    train_data = pd.read_csv(train_file_path)
+    
+    print(f"Loading testing data from {test_file_path}...")
+    test_data = pd.read_csv(test_file_path)
 
-    # Separate features and labels
-    x_data = data.iloc[:, 1:].values  # Features
-    y_data = data.iloc[:, 0].values  # Labels
+    # Identify target column (last column by default)
+    target_column = train_data.columns[-1]
 
-    return x_data / 255.0, y_data
+    # Split into features (X) and target (y)
+    x_train = train_data.drop(columns=[target_column]).values
+    y_train = train_data[target_column].values
+
+    x_test = test_data.drop(columns=[target_column]).values
+    y_test = test_data[target_column].values
+
+    # Preprocess data based on task type
+    if task_type == 'classification':
+        # Convert targets to integer labels for classification
+        label_encoder = LabelEncoder()
+        y_train = label_encoder.fit_transform(y_train)
+        y_test = label_encoder.transform(y_test)
+    elif task_type == 'regression':
+        # Ensure targets are float for regression
+        y_train = y_train.astype(np.float32)
+        y_test = y_test.astype(np.float32)
+    
+    # Normalize features
+    scaler = MinMaxScaler()
+    x_train = scaler.fit_transform(x_train)
+    x_test = scaler.transform(x_test)
+
+    return x_train, y_train, x_test, y_test
+
+
 
 # Define the neural network
 class NeuralNet(nn.Module):
@@ -117,43 +147,60 @@ def plot_metrics(losses, accuracies):
 
 
 # Evaluate model and display confusion matrix and additional metrics
-def evaluate_model(model, x_test, y_test, device):
+
+
+def evaluate_model(model, x_test, y_test, device, task_type='classification'):
     model.eval()
     with torch.no_grad():
         # Perform predictions
         test_outputs = model(x_test)
-        predictions = torch.argmax(test_outputs, dim=1)
+        
+        if task_type == 'regression':
+            test_outputs = test_outputs.squeeze()
+            # Convert predictions and true labels to NumPy arrays
+            y_true = y_test.cpu().numpy()
+            y_pred = test_outputs.cpu().numpy()
 
-    # Convert predictions and true labels to NumPy arrays
-    y_true = y_test.cpu().numpy()
-    y_pred = predictions.cpu().numpy()
+            # Calculate regression metrics
+            mse = mean_squared_error(y_true, y_pred)
+            mae = mean_absolute_error(y_true, y_pred)
 
-    # Calculate confusion matrix
-    cm = confusion_matrix(y_true, y_pred)
+            print(f"\nEvaluation Metrics:")
+            print(f"Mean Squared Error (MSE): {mse:.4f}")
+            print(f"Mean Absolute Error (MAE): {mae:.4f}")
+        else:
+            # Classification-specific evaluation
+            predictions = torch.argmax(test_outputs, dim=1)
 
-    # Display confusion matrix
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.arange(len(np.unique(y_true))))
-    disp.plot(cmap=plt.cm.Blues)
-    plt.title("Confusion Matrix")
-    plt.show()
+            # Convert predictions and true labels to NumPy arrays
+            y_true = y_test.cpu().numpy()
+            y_pred = predictions.cpu().numpy()
 
-    # Calculate and display classification report
-    report = classification_report(y_true, y_pred, digits=4)
-    print("\nClassification Report:\n")
-    print(report)
+            # Calculate confusion matrix
+            cm = confusion_matrix(y_true, y_pred)
 
-    # Calculate specificity for each class
-    specificity = []
-    for i in range(len(cm)):
-        tn = cm.sum() - (cm[i, :].sum() + cm[:, i].sum() - cm[i, i])  # True negatives
-        fp = cm[:, i].sum() - cm[i, i]  # False positives
-        specificity.append(tn / (tn + fp) if (tn + fp) > 0 else 0)
+            # Display confusion matrix
+            disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.arange(len(np.unique(y_true))))
+            disp.plot(cmap=plt.cm.Blues)
+            plt.title("Confusion Matrix")
+            plt.show()
 
-    # Print specificity for each class
-    print("\nSpecificity (per class):")
-    for i, spec in enumerate(specificity):
-        print(f"Class {i}: {spec:.4f}")
+            # Calculate and display classification report
+            report = classification_report(y_true, y_pred, digits=4)
+            print("\nClassification Report:\n")
+            print(report)
 
+            # Calculate specificity for each class
+            specificity = []
+            for i in range(len(cm)):
+                tn = cm.sum() - (cm[i, :].sum() + cm[:, i].sum() - cm[i, i])  # True negatives
+                fp = cm[:, i].sum() - cm[i, i]  # False positives
+                specificity.append(tn / (tn + fp) if (tn + fp) > 0 else 0)
+
+            # Print specificity for each class
+            print("\nSpecificity (per class):")
+            for i, spec in enumerate(specificity):
+                print(f"Class {i}: {spec:.4f}")
 
 # Main function
 def main():
@@ -165,34 +212,46 @@ def main():
     if dataset_choice == 1:
         x_train, y_train, x_test, y_test = load_mnist()
         input_dim, output_dim = 28 * 28, 10
+        task_type = "classification"
     elif dataset_choice == 2:
         x_train, y_train, x_test, y_test = load_fashion_mnist()
         input_dim, output_dim = 28 * 28, 10
+        task_type = "classification"
     elif dataset_choice == 3:
         x_train, y_train, x_test, y_test = load_cifar10()
         input_dim, output_dim = 32 * 32 * 3, 10
+        task_type = "classification"
     elif dataset_choice == 4:
-        file_path = input("Enter the path to the CSV file: ").strip()
-        x_data, y_data = load_data(file_path)
-        train_size = int(0.8 * len(x_data))
-        x_train, y_train = x_data[:train_size], y_data[:train_size]
-        x_test, y_test = x_data[train_size:], y_data[train_size:]
-        input_dim, output_dim = x_data.shape[1], len(np.unique(y_data))
+        train_file_path = input("Enter the path to the training CSV file: ").strip()
+        test_file_path = input("Enter the path to the testing CSV file: ").strip()
+        task_type = input("Enter the task type (classification or regression): ").strip().lower()
+        if task_type not in ['classification', 'regression']:
+            raise ValueError("Invalid task type! Choose 'classification' or 'regression'.")
+        x_train, y_train, x_test, y_test = load_data(train_file_path, test_file_path, task_type)
+        input_dim = x_train.shape[1]
+        output_dim = len(np.unique(y_train)) if task_type == 'classification' else 1
     else:
         print("Invalid choice! Defaulting to MNIST.")
         x_train, y_train, x_test, y_test = load_mnist()
         input_dim, output_dim = 28 * 28, 10
+        task_type = "classification"
 
     # Initialize the model, optimizer, and loss function
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = NeuralNet(input_dim, output_dim).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    criterion = nn.CrossEntropyLoss()
+
+    if task_type == "classification":
+        criterion = nn.CrossEntropyLoss()
+        y_train = torch.tensor(y_train, dtype=torch.long).to(device)
+        y_test = torch.tensor(y_test, dtype=torch.long).to(device)
+    elif task_type == "regression":
+        criterion = nn.MSELoss()
+        y_train = torch.tensor(y_train, dtype=torch.float32).to(device)
+        y_test = torch.tensor(y_test, dtype=torch.float32).to(device)
 
     x_train = torch.tensor(x_train.reshape(-1, input_dim), dtype=torch.float32).to(device)
     x_test = torch.tensor(x_test.reshape(-1, input_dim), dtype=torch.float32).to(device)
-    y_train = torch.tensor(y_train, dtype=torch.long).to(device)
-    y_test = torch.tensor(y_test, dtype=torch.long).to(device)
 
     # Training loop
     losses, accuracies = [], []
@@ -200,6 +259,10 @@ def main():
         model.train()
         optimizer.zero_grad()
         outputs = model(x_train)
+
+        if task_type == "regression":
+            outputs = outputs.squeeze()
+
         loss = criterion(outputs, y_train)
         loss.backward()
         optimizer.step()
@@ -210,14 +273,18 @@ def main():
         model.eval()
         with torch.no_grad():
             test_outputs = model(x_test)
-            predictions = torch.argmax(test_outputs, dim=1)
-            accuracy = (predictions == y_test).float().mean().item()
-            accuracies.append(accuracy)
+            if task_type == "classification":
+                predictions = torch.argmax(test_outputs, dim=1)
+                accuracy = (predictions == y_test).float().mean().item()
+                accuracies.append(accuracy)
+                print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}, Accuracy: {accuracy:.4f}")
+            else:
+                print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}")
 
-        print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}, Accuracy: {accuracy:.4f}")
+    if task_type == "classification":
+        plot_metrics(losses, accuracies)
+    evaluate_model(model, x_test, y_test, device, task_type)
 
-    plot_metrics(losses, accuracies)
-    evaluate_model(model, x_test, y_test, device)
-
+    
 if __name__ == "__main__":
     main()

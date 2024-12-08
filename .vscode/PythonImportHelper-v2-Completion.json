@@ -94,6 +94,38 @@
         "documentation": {}
     },
     {
+        "label": "mean_squared_error",
+        "importPath": "sklearn.metrics",
+        "description": "sklearn.metrics",
+        "isExtraImport": true,
+        "detail": "sklearn.metrics",
+        "documentation": {}
+    },
+    {
+        "label": "mean_absolute_error",
+        "importPath": "sklearn.metrics",
+        "description": "sklearn.metrics",
+        "isExtraImport": true,
+        "detail": "sklearn.metrics",
+        "documentation": {}
+    },
+    {
+        "label": "LabelEncoder",
+        "importPath": "sklearn.preprocessing",
+        "description": "sklearn.preprocessing",
+        "isExtraImport": true,
+        "detail": "sklearn.preprocessing",
+        "documentation": {}
+    },
+    {
+        "label": "MinMaxScaler",
+        "importPath": "sklearn.preprocessing",
+        "description": "sklearn.preprocessing",
+        "isExtraImport": true,
+        "detail": "sklearn.preprocessing",
+        "documentation": {}
+    },
+    {
         "label": "NeuralNet",
         "kind": 6,
         "importPath": "python_version.main",
@@ -152,7 +184,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def load_data(file_path):\n    print(f\"Loading data from {file_path}...\")\n    data = pd.read_csv(file_path)\n    # Drop unnecessary columns\n    if 'id' in data.columns:\n        data = data.drop(columns=['id'])\n    if 'Unnamed: 32' in data.columns:\n        data = data.drop(columns=['Unnamed: 32'])\n    # Convert labels to numeric if necessary\n    if 'diagnosis' in data.columns:",
+        "peekOfCode": "def load_data(train_file_path, test_file_path, task_type='classification'):\n    \"\"\"\n    Load and preprocess data from CSV files.\n    Args:\n        train_file_path (str): Path to the training dataset CSV.\n        test_file_path (str): Path to the testing dataset CSV.\n        task_type (str): Either 'classification' or 'regression'.\n    Returns:\n        x_train, y_train, x_test, y_test: Preprocessed datasets.\n    \"\"\"",
         "detail": "python_version.main",
         "documentation": {}
     },
@@ -170,7 +202,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def evaluate_model(model, x_test, y_test, device):\n    model.eval()\n    with torch.no_grad():\n        # Perform predictions\n        test_outputs = model(x_test)\n        predictions = torch.argmax(test_outputs, dim=1)\n    # Convert predictions and true labels to NumPy arrays\n    y_true = y_test.cpu().numpy()\n    y_pred = predictions.cpu().numpy()\n    # Calculate confusion matrix",
+        "peekOfCode": "def evaluate_model(model, x_test, y_test, device, task_type='classification'):\n    model.eval()\n    with torch.no_grad():\n        # Perform predictions\n        test_outputs = model(x_test)\n        if task_type == 'regression':\n            test_outputs = test_outputs.squeeze()\n            # Convert predictions and true labels to NumPy arrays\n            y_true = y_test.cpu().numpy()\n            y_pred = test_outputs.cpu().numpy()",
         "detail": "python_version.main",
         "documentation": {}
     },
@@ -179,7 +211,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def main():\n    dataset_choice = int(input(\n        \"Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): \").strip())\n    epochs = int(input(\"Enter the number of training epochs: \").strip())\n    # Load dataset\n    if dataset_choice == 1:\n        x_train, y_train, x_test, y_test = load_mnist()\n        input_dim, output_dim = 28 * 28, 10\n    elif dataset_choice == 2:\n        x_train, y_train, x_test, y_test = load_fashion_mnist()",
+        "peekOfCode": "def main():\n    dataset_choice = int(input(\n        \"Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): \").strip())\n    epochs = int(input(\"Enter the number of training epochs: \").strip())\n    # Load dataset\n    if dataset_choice == 1:\n        x_train, y_train, x_test, y_test = load_mnist()\n        input_dim, output_dim = 28 * 28, 10\n        task_type = \"classification\"\n    elif dataset_choice == 2:",
         "detail": "python_version.main",
         "documentation": {}
     }
