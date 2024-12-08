@@ -9,6 +9,9 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.metrics import classification_report
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.metrics import roc_curve, auc, RocCurveDisplay
+from sklearn.preprocessing import label_binarize
+
 
 
 # Function to apply the sigmoid function element-wise to normalize dataset values
@@ -147,12 +150,12 @@ def plot_metrics(losses, accuracies):
 
 
 # Evaluate model and display confusion matrix and additional metrics
-
+from sklearn.metrics import roc_curve, auc, RocCurveDisplay
+from sklearn.preprocessing import label_binarize
 
 def evaluate_model(model, x_test, y_test, device, task_type='classification'):
     model.eval()
     with torch.no_grad():
-        # Perform predictions
         test_outputs = model(x_test)
         
         if task_type == 'regression':
@@ -170,11 +173,10 @@ def evaluate_model(model, x_test, y_test, device, task_type='classification'):
             print(f"Mean Absolute Error (MAE): {mae:.4f}")
         else:
             # Classification-specific evaluation
-            predictions = torch.argmax(test_outputs, dim=1)
-
-            # Convert predictions and true labels to NumPy arrays
+            probabilities = torch.softmax(test_outputs, dim=1).cpu().numpy()
+            predictions = np.argmax(probabilities, axis=1)
             y_true = y_test.cpu().numpy()
-            y_pred = predictions.cpu().numpy()
+            y_pred = predictions
 
             # Calculate confusion matrix
             cm = confusion_matrix(y_true, y_pred)
@@ -190,17 +192,34 @@ def evaluate_model(model, x_test, y_test, device, task_type='classification'):
             print("\nClassification Report:\n")
             print(report)
 
-            # Calculate specificity for each class
-            specificity = []
-            for i in range(len(cm)):
-                tn = cm.sum() - (cm[i, :].sum() + cm[:, i].sum() - cm[i, i])  # True negatives
-                fp = cm[:, i].sum() - cm[i, i]  # False positives
-                specificity.append(tn / (tn + fp) if (tn + fp) > 0 else 0)
+            # Compute ROC curve and AUC for each class
+            n_classes = probabilities.shape[1]
+            y_true_binarized = label_binarize(y_true, classes=np.arange(n_classes))
+            fpr, tpr, roc_auc = {}, {}, {}
 
-            # Print specificity for each class
-            print("\nSpecificity (per class):")
-            for i, spec in enumerate(specificity):
-                print(f"Class {i}: {spec:.4f}")
+            plt.figure(figsize=(10, 8))
+            for i in range(n_classes):
+                fpr[i], tpr[i], _ = roc_curve(y_true_binarized[:, i], probabilities[:, i])
+                roc_auc[i] = auc(fpr[i], tpr[i])
+                plt.plot(fpr[i], tpr[i], label=f"Class {i} (AUC = {roc_auc[i]:.4f})")
+
+            # Plot diagonal
+            plt.plot([0, 1], [0, 1], color="navy", linestyle="--")
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")
+            plt.title("ROC Curve")
+            plt.legend(loc="lower right")
+            plt.show()
+
+            # Calculate macro-average AUC
+            all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+            mean_tpr = np.zeros_like(all_fpr)
+            for i in range(n_classes):
+                mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
+            mean_tpr /= n_classes
+            macro_auc = auc(all_fpr, mean_tpr)
+            print(f"\nMacro-average AUC: {macro_auc:.4f}")
+
 
 # Main function
 def main():
