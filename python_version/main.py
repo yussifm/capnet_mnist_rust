@@ -11,7 +11,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.metrics import roc_curve, auc, RocCurveDisplay
 from sklearn.preprocessing import label_binarize
-
+from sklearn.impute import SimpleImputer
 
 
 # Function to apply the sigmoid function element-wise to normalize dataset values
@@ -75,6 +75,7 @@ def load_cifar10():
     return x_train, y_train, x_test, y_test
 
 # Load custom training and testing datasets from CSV
+
 def load_data(train_file_path, test_file_path, task_type='classification'):
     """
     Load and preprocess data from CSV files.
@@ -89,38 +90,77 @@ def load_data(train_file_path, test_file_path, task_type='classification'):
     """
     print(f"Loading training data from {train_file_path}...")
     train_data = pd.read_csv(train_file_path)
-    
+
     print(f"Loading testing data from {test_file_path}...")
     test_data = pd.read_csv(test_file_path)
 
-    # Identify target column (last column by default)
-    target_column = train_data.columns[-1]
+    # Target column: 'pathology'
+    target_column = 'pathology'
+
+    # Define features and preprocess
+    # Dynamically select numeric and categorical columns
+    numeric_columns = train_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_columns = train_data.select_dtypes(include=['object']).columns.tolist()
+    
+    # Remove target column from features
+    if target_column in numeric_columns:
+        numeric_columns.remove(target_column)
+    if target_column in categorical_columns:
+        categorical_columns.remove(target_column)
+
+    # Ensure target column exists
+    if target_column not in train_data.columns or target_column not in test_data.columns:
+        raise ValueError(f"Target column '{target_column}' not found in dataset.")
+
+    # Handle missing values for numeric features
+    for col in numeric_columns:
+        train_data[col] = pd.to_numeric(train_data[col], errors='coerce')
+        test_data[col] = pd.to_numeric(test_data[col], errors='coerce')
+        train_data[col].fillna(train_data[col].median(), inplace=True)
+        test_data[col].fillna(test_data[col].median(), inplace=True)
+
+    # Handle missing values for categorical features
+    for col in categorical_columns:
+        train_data[col].fillna(train_data[col].mode()[0], inplace=True)
+        test_data[col].fillna(test_data[col].mode()[0], inplace=True)
+
+    # One-hot encode categorical columns
+    if categorical_columns:
+        train_data = pd.get_dummies(train_data, columns=categorical_columns, drop_first=True)
+        test_data = pd.get_dummies(test_data, columns=categorical_columns, drop_first=True)
+
+    # Align train and test datasets to ensure consistent columns
+    train_data, test_data = train_data.align(test_data, join='inner', axis=1, fill_value=0)
 
     # Split into features (X) and target (y)
-    x_train = train_data.drop(columns=[target_column]).values
-    y_train = train_data[target_column].values
+    x_train = train_data.drop(columns=[target_column])
+    y_train = train_data[target_column]
 
-    x_test = test_data.drop(columns=[target_column]).values
-    y_test = test_data[target_column].values
+    x_test = test_data.drop(columns=[target_column])
+    y_test = test_data[target_column]
 
-    # Preprocess data based on task type
-    if task_type == 'classification':
-        # Convert targets to integer labels for classification
+    # Convert target column for classification
+    if task_type in ['classification', 'c']:
+        # Encode target labels 
         label_encoder = LabelEncoder()
         y_train = label_encoder.fit_transform(y_train)
         y_test = label_encoder.transform(y_test)
-    elif task_type == 'regression':
+    elif task_type in ['regression', 'r']:
         # Ensure targets are float for regression
         y_train = y_train.astype(np.float32)
         y_test = y_test.astype(np.float32)
-    
-    # Normalize features
+
+    # Normalize numeric features
+    numeric_columns = x_train.select_dtypes(include=['int64', 'float64']).columns
     scaler = MinMaxScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_test = scaler.transform(x_test)
+    x_train[numeric_columns] = scaler.fit_transform(x_train[numeric_columns])
+    x_test[numeric_columns] = scaler.transform(x_test[numeric_columns])
 
-    return x_train, y_train, x_test, y_test
+    # Ensure all features are numeric
+    x_train = x_train.select_dtypes(include=['int64', 'float64'])
+    x_test = x_test.select_dtypes(include=['int64', 'float64'])
 
+    return x_train.values, y_train, x_test.values, y_test
 
 
 # Define the neural network
@@ -158,25 +198,26 @@ def evaluate_model(model, x_test, y_test, device, task_type='classification'):
     with torch.no_grad():
         test_outputs = model(x_test)
         
-        if task_type == 'regression':
+        if task_type in ['regression', 'r']:
             test_outputs = test_outputs.squeeze()
-            # Convert predictions and true labels to NumPy arrays
             y_true = y_test.cpu().numpy()
             y_pred = test_outputs.cpu().numpy()
 
-            # Calculate regression metrics
             mse = mean_squared_error(y_true, y_pred)
             mae = mean_absolute_error(y_true, y_pred)
 
             print(f"\nEvaluation Metrics:")
             print(f"Mean Squared Error (MSE): {mse:.4f}")
             print(f"Mean Absolute Error (MAE): {mae:.4f}")
-        else:
-            # Classification-specific evaluation
+        
+        elif task_type in ['classification', 'c']:
+            # Existing classification evaluation code remains the same
             probabilities = torch.softmax(test_outputs, dim=1).cpu().numpy()
             predictions = np.argmax(probabilities, axis=1)
             y_true = y_test.cpu().numpy()
             y_pred = predictions
+
+            # Rest of the classification evaluation code...
 
             # Calculate confusion matrix
             cm = confusion_matrix(y_true, y_pred)
@@ -230,80 +271,89 @@ def main():
     # Load dataset
     if dataset_choice == 1:
         x_train, y_train, x_test, y_test = load_mnist()
+       #print("X_train shape:", x_train.shape)
+        #print("y_train shape:", y_train.shape)
+        #print("X_test shape:", x_test.shape)
+        #print("y_test shape:", y_test.shape)
         input_dim, output_dim = 28 * 28, 10
         task_type = "classification"
     elif dataset_choice == 2:
         x_train, y_train, x_test, y_test = load_fashion_mnist()
+       #print("X_train shape:", x_train.shape)
+        #print("y_train shape:", y_train.shape)
+        #print("X_test shape:", x_test.shape)
+        #print("y_test shape:", y_test.shape)
         input_dim, output_dim = 28 * 28, 10
         task_type = "classification"
     elif dataset_choice == 3:
         x_train, y_train, x_test, y_test = load_cifar10()
+       #print("X_train shape:", x_train.shape)
+        #print("y_train shape:", y_train.shape)
+        #print("X_test shape:", x_test.shape)
+        #print("y_test shape:", y_test.shape)
         input_dim, output_dim = 32 * 32 * 3, 10
         task_type = "classification"
     elif dataset_choice == 4:
         train_file_path = input("Enter the path to the training CSV file: ").strip()
         test_file_path = input("Enter the path to the testing CSV file: ").strip()
         task_type = input("Enter the task type (classification or regression): ").strip().lower()
-        if task_type not in ['classification', 'regression']:
+            # Add print statements to debug data shapes
+       #print("X_train shape:", x_train.shape)
+        #print("y_train shape:", y_train.shape)
+        #print("X_test shape:", x_test.shape)
+        #print("y_test shape:", y_test.shape)
+        if task_type not in ['classification', 'regression', 'c', 'r']:
             raise ValueError("Invalid task type! Choose 'classification' or 'regression'.")
         x_train, y_train, x_test, y_test = load_data(train_file_path, test_file_path, task_type)
         input_dim = x_train.shape[1]
-        output_dim = len(np.unique(y_train)) if task_type == 'classification' else 1
+        output_dim = len(np.unique(y_train)) if task_type in ['classification', 'c'] else 1
     else:
-        print("Invalid choice! Defaulting to MNIST.")
-        x_train, y_train, x_test, y_test = load_mnist()
-        input_dim, output_dim = 28 * 28, 10
-        task_type = "classification"
+        raise ValueError("Invalid dataset choice!")
 
-    # Initialize the model, optimizer, and loss function
+    # Flatten and convert to PyTorch tensors
+    
+    x_train = torch.tensor(x_train.reshape(-1, input_dim), dtype=torch.float32)
+    y_train = torch.tensor(y_train, dtype=torch.float32 if task_type in ['regression', 'r'] else torch.long)
+    x_test = torch.tensor(x_test.reshape(-1, input_dim), dtype=torch.float32)
+    y_test = torch.tensor(y_test, dtype=torch.float32 if task_type in ['regression', 'r'] else torch.long)
+
+    # Initialize model, loss function, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = NeuralNet(input_dim, output_dim).to(device)
+    criterion = nn.MSELoss() if task_type in ['regression', 'r'] else nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    if task_type == "classification":
-        criterion = nn.CrossEntropyLoss()
-        y_train = torch.tensor(y_train, dtype=torch.long).to(device)
-        y_test = torch.tensor(y_test, dtype=torch.long).to(device)
-    elif task_type == "regression":
-        criterion = nn.MSELoss()
-        y_train = torch.tensor(y_train, dtype=torch.float32).to(device)
-        y_test = torch.tensor(y_test, dtype=torch.float32).to(device)
-
-    x_train = torch.tensor(x_train.reshape(-1, input_dim), dtype=torch.float32).to(device)
-    x_test = torch.tensor(x_test.reshape(-1, input_dim), dtype=torch.float32).to(device)
 
     # Training loop
     losses, accuracies = [], []
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
-        outputs = model(x_train)
-
-        if task_type == "regression":
-            outputs = outputs.squeeze()
-
-        loss = criterion(outputs, y_train)
+        outputs = model(x_train.to(device))
+        loss = criterion(outputs.squeeze(), y_train.to(device))
         loss.backward()
         optimizer.step()
 
+        # Record training loss
         losses.append(loss.item())
 
-        # Evaluation
-        model.eval()
-        with torch.no_grad():
-            test_outputs = model(x_test)
-            if task_type == "classification":
-                predictions = torch.argmax(test_outputs, dim=1)
-                accuracy = (predictions == y_test).float().mean().item()
+        # Compute accuracy for classification tasks
+        if task_type in ['classification', 'c']:
+            with torch.no_grad():
+                predictions = torch.argmax(outputs, dim=1)
+                accuracy = (predictions.cpu() == y_train.cpu()).float().mean().item()
                 accuracies.append(accuracy)
-                print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}, Accuracy: {accuracy:.4f}")
-            else:
-                print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}")
+            print(f"Epoch [{epoch + 1}/{epochs}] - Loss: {loss.item():.4f}, Accuracy: {accuracy:.4f}")
+        else:
+            print(f"Epoch [{epoch + 1}/{epochs}] - Loss: {loss.item():.4f}")
 
-    if task_type == "classification":
+    # Plot training metrics
+    if task_type in ['classification', 'c']:
         plot_metrics(losses, accuracies)
-    evaluate_model(model, x_test, y_test, device, task_type)
 
-    
+    # Evaluate model
+    print("\nEvaluating model on test data...")
+    evaluate_model(model, x_test.to(device), y_test.to(device), device, task_type)
+
+
 if __name__ == "__main__":
     main()

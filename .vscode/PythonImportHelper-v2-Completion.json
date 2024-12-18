@@ -190,6 +190,14 @@
         "documentation": {}
     },
     {
+        "label": "SimpleImputer",
+        "importPath": "sklearn.impute",
+        "description": "sklearn.impute",
+        "isExtraImport": true,
+        "detail": "sklearn.impute",
+        "documentation": {}
+    },
+    {
         "label": "NeuralNet",
         "kind": 6,
         "importPath": "python_version.main",
@@ -266,7 +274,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def evaluate_model(model, x_test, y_test, device, task_type='classification'):\n    model.eval()\n    with torch.no_grad():\n        test_outputs = model(x_test)\n        if task_type == 'regression':\n            test_outputs = test_outputs.squeeze()\n            # Convert predictions and true labels to NumPy arrays\n            y_true = y_test.cpu().numpy()\n            y_pred = test_outputs.cpu().numpy()\n            # Calculate regression metrics",
+        "peekOfCode": "def evaluate_model(model, x_test, y_test, device, task_type='classification'):\n    model.eval()\n    with torch.no_grad():\n        test_outputs = model(x_test)\n        if task_type in ['regression', 'r']:\n            test_outputs = test_outputs.squeeze()\n            y_true = y_test.cpu().numpy()\n            y_pred = test_outputs.cpu().numpy()\n            mse = mean_squared_error(y_true, y_pred)\n            mae = mean_absolute_error(y_true, y_pred)",
         "detail": "python_version.main",
         "documentation": {}
     },
@@ -275,7 +283,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def main():\n    dataset_choice = int(input(\n        \"Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): \").strip())\n    epochs = int(input(\"Enter the number of training epochs: \").strip())\n    # Load dataset\n    if dataset_choice == 1:\n        x_train, y_train, x_test, y_test = load_mnist()\n        input_dim, output_dim = 28 * 28, 10\n        task_type = \"classification\"\n    elif dataset_choice == 2:",
+        "peekOfCode": "def main():\n    dataset_choice = int(input(\n        \"Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): \").strip())\n    epochs = int(input(\"Enter the number of training epochs: \").strip())\n    # Load dataset\n    if dataset_choice == 1:\n        x_train, y_train, x_test, y_test = load_mnist()\n       #print(\"X_train shape:\", x_train.shape)\n        #print(\"y_train shape:\", y_train.shape)\n        #print(\"X_test shape:\", x_test.shape)",
         "detail": "python_version.main",
         "documentation": {}
     }
