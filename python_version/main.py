@@ -79,7 +79,7 @@ def load_cifar10():
 # Load custom training and testing datasets from CSV
 def load_data(train_file_path, test_file_path, task_type='classification'):
     """
-    Load and preprocess data from CSV files.
+    Load and preprocess data from CSV files for binary classification (benign/malignant).
     """
     print(f"Loading training data from {train_file_path}...")
     train_data = pd.read_csv(train_file_path)
@@ -89,6 +89,11 @@ def load_data(train_file_path, test_file_path, task_type='classification'):
 
     # Target column: 'pathology'
     target_column = 'pathology'
+
+    # Convert pathology to binary (0 for benign, 1 for malignant)
+    pathology_map = {'BENIGN': 0, 'MALIGNANT': 1}
+    train_data[target_column] = train_data[target_column].map(pathology_map)
+    test_data[target_column] = test_data[target_column].map(pathology_map)
 
     # Handle missing values and preprocess features
     numeric_columns = train_data.select_dtypes(include=['number']).columns.tolist()
@@ -118,7 +123,6 @@ def load_data(train_file_path, test_file_path, task_type='classification'):
     # Split features and target
     x_train = train_data.drop(columns=[target_column])
     y_train = train_data[target_column]
-
     x_test = test_data.drop(columns=[target_column])
     y_test = test_data[target_column]
 
@@ -126,29 +130,25 @@ def load_data(train_file_path, test_file_path, task_type='classification'):
     x_train = x_train.astype(float)
     x_test = x_test.astype(float)
 
-    # Normalize all features (since they're all numeric now)
+    # Normalize all features
     scaler = MinMaxScaler()
     x_train = pd.DataFrame(scaler.fit_transform(x_train), columns=x_train.columns)
     x_test = pd.DataFrame(scaler.transform(x_test), columns=x_test.columns)
 
-    # Convert to PyTorch tensors
-    x_train = torch.tensor(x_train.values, dtype=torch.float32)
-    x_test = torch.tensor(x_test.values, dtype=torch.float32)
+    # Convert to numpy arrays
+    x_train = x_train.values
+    x_test = x_test.values
+    y_train = y_train.values
+    y_test = y_test.values
 
-    # Encode target for classification tasks
-    if task_type in ['classification', 'c']:
-        label_encoder = LabelEncoder()
-        y_train = torch.tensor(label_encoder.fit_transform(y_train), dtype=torch.long)
-        y_test = torch.tensor(label_encoder.transform(y_test), dtype=torch.long)
-    elif task_type in ['regression', 'r']:
-        y_train = torch.tensor(y_train.values.astype(np.float32), dtype=torch.float32)
-        y_test = torch.tensor(y_test.values.astype(np.float32), dtype=torch.float32)
-
-    print(f"Training data shape: {x_train.shape}")
-    print(f"Testing data shape: {x_test.shape}")
-    print(f"Number of features: {x_train.shape[1]}")
-    if task_type in ['classification', 'c']:
-        print(f"Number of classes: {len(torch.unique(y_train))}")
+    print(f"Processed data shapes:")
+    print(f"x_train shape: {x_train.shape}")
+    print(f"x_test shape: {x_test.shape}")
+    print(f"y_train shape: {y_train.shape}")
+    print(f"y_test shape: {y_test.shape}")
+    print(f"\nClass distribution:")
+    print(f"Training set - Benign: {np.sum(y_train == 0)}, Malignant: {np.sum(y_train == 1)}")
+    print(f"Testing set - Benign: {np.sum(y_test == 0)}, Malignant: {np.sum(y_test == 1)}")
 
     return x_train, y_train, x_test, y_test
 
@@ -285,17 +285,17 @@ def main():
     elif dataset_choice == 4:
         train_file_path = input("Enter the path to the training CSV file: ").strip()
         test_file_path = input("Enter the path to the testing CSV file: ").strip()
-        task_type = input("Enter the task type (classification or regression): ").strip().lower()
-            # Add print statements to debug data shapes
-       #print("X_train shape:", x_train.shape)
-        #print("y_train shape:", y_train.shape)
-        #print("X_test shape:", x_test.shape)
-        #print("y_test shape:", y_test.shape)
-        if task_type not in ['classification', 'regression', 'c', 'r']:
-            raise ValueError("Invalid task type! Choose 'classification' or 'regression'.")
+        task_type = 'classification'  # Force binary classification
+        
         x_train, y_train, x_test, y_test = load_data(train_file_path, test_file_path, task_type)
         input_dim = x_train.shape[1]
-        output_dim = len(np.unique(y_train)) if task_type in ['classification', 'c'] else 1
+        output_dim = 2  # Binary classification (benign/malignant)
+
+        # Convert to tensors
+        x_train = torch.tensor(x_train, dtype=torch.float32)
+        x_test = torch.tensor(x_test, dtype=torch.float32)
+        y_train = torch.tensor(y_train, dtype=torch.long)
+        y_test = torch.tensor(y_test, dtype=torch.long)
     else:
         raise ValueError("Invalid dataset choice!")
 

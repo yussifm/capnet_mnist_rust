@@ -256,7 +256,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def load_data(train_file_path, test_file_path, task_type='classification'):\n    \"\"\"\n    Load and preprocess data from CSV files.\n    \"\"\"\n    print(f\"Loading training data from {train_file_path}...\")\n    train_data = pd.read_csv(train_file_path)\n    print(f\"Loading testing data from {test_file_path}...\")\n    test_data = pd.read_csv(test_file_path)\n    # Target column: 'pathology'\n    target_column = 'pathology'",
+        "peekOfCode": "def load_data(train_file_path, test_file_path, task_type='classification'):\n    \"\"\"\n    Load and preprocess data from CSV files for binary classification (benign/malignant).\n    \"\"\"\n    print(f\"Loading training data from {train_file_path}...\")\n    train_data = pd.read_csv(train_file_path)\n    print(f\"Loading testing data from {test_file_path}...\")\n    test_data = pd.read_csv(test_file_path)\n    # Target column: 'pathology'\n    target_column = 'pathology'",
         "detail": "python_version.main",
         "documentation": {}
     },
