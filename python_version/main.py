@@ -76,17 +76,10 @@ def load_cifar10():
 
 # Load custom training and testing datasets from CSV
 
+# Load custom training and testing datasets from CSV
 def load_data(train_file_path, test_file_path, task_type='classification'):
     """
     Load and preprocess data from CSV files.
-
-    Args:
-        train_file_path (str): Path to the training dataset CSV.
-        test_file_path (str): Path to the testing dataset CSV.
-        task_type (str): Either 'classification' or 'regression'.
-
-    Returns:
-        x_train, y_train, x_test, y_test: Preprocessed datasets.
     """
     print(f"Loading training data from {train_file_path}...")
     train_data = pd.read_csv(train_file_path)
@@ -97,71 +90,67 @@ def load_data(train_file_path, test_file_path, task_type='classification'):
     # Target column: 'pathology'
     target_column = 'pathology'
 
-    # Define features and preprocess
-    # Dynamically select numeric and categorical columns
-    numeric_columns = train_data.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    # Handle missing values and preprocess features
+    numeric_columns = train_data.select_dtypes(include=['number']).columns.tolist()
     categorical_columns = train_data.select_dtypes(include=['object']).columns.tolist()
-    
-    # Remove target column from features
-    if target_column in numeric_columns:
-        numeric_columns.remove(target_column)
-    if target_column in categorical_columns:
-        categorical_columns.remove(target_column)
 
-    # Ensure target column exists
-    if target_column not in train_data.columns or target_column not in test_data.columns:
-        raise ValueError(f"Target column '{target_column}' not found in dataset.")
+    # Remove target column from feature lists
+    numeric_columns = [col for col in numeric_columns if col != target_column]
+    categorical_columns = [col for col in categorical_columns if col != target_column]
 
-    # Handle missing values for numeric features
-    for col in numeric_columns:
-        train_data[col] = pd.to_numeric(train_data[col], errors='coerce')
-        test_data[col] = pd.to_numeric(test_data[col], errors='coerce')
-        train_data[col].fillna(train_data[col].median(), inplace=True)
-        test_data[col].fillna(test_data[col].median(), inplace=True)
+    # Fill missing numeric values with median
+    imputer = SimpleImputer(strategy="median")
+    train_data[numeric_columns] = imputer.fit_transform(train_data[numeric_columns])
+    test_data[numeric_columns] = imputer.transform(test_data[numeric_columns])
 
-    # Handle missing values for categorical features
+    # Fill missing categorical values with mode
     for col in categorical_columns:
-        train_data[col].fillna(train_data[col].mode()[0], inplace=True)
-        test_data[col].fillna(test_data[col].mode()[0], inplace=True)
+        train_data[col] = train_data[col].fillna(train_data[col].mode()[0])
+        test_data[col] = test_data[col].fillna(test_data[col].mode()[0])
 
     # One-hot encode categorical columns
-    if categorical_columns:
-        train_data = pd.get_dummies(train_data, columns=categorical_columns, drop_first=True)
-        test_data = pd.get_dummies(test_data, columns=categorical_columns, drop_first=True)
+    train_data = pd.get_dummies(train_data, columns=categorical_columns, drop_first=True)
+    test_data = pd.get_dummies(test_data, columns=categorical_columns, drop_first=True)
 
-    # Align train and test datasets to ensure consistent columns
+    # Align train and test datasets
     train_data, test_data = train_data.align(test_data, join='inner', axis=1, fill_value=0)
 
-    # Split into features (X) and target (y)
+    # Split features and target
     x_train = train_data.drop(columns=[target_column])
     y_train = train_data[target_column]
 
     x_test = test_data.drop(columns=[target_column])
     y_test = test_data[target_column]
 
-    # Convert target column for classification
-    if task_type in ['classification', 'c']:
-        # Encode target labels 
-        label_encoder = LabelEncoder()
-        y_train = label_encoder.fit_transform(y_train)
-        y_test = label_encoder.transform(y_test)
-    elif task_type in ['regression', 'r']:
-        # Ensure targets are float for regression
-        y_train = y_train.astype(np.float32)
-        y_test = y_test.astype(np.float32)
+    # Ensure all data is numeric
+    x_train = x_train.astype(float)
+    x_test = x_test.astype(float)
 
-    # Normalize numeric features
-    numeric_columns = x_train.select_dtypes(include=['int64', 'float64']).columns
+    # Normalize all features (since they're all numeric now)
     scaler = MinMaxScaler()
-    x_train[numeric_columns] = scaler.fit_transform(x_train[numeric_columns])
-    x_test[numeric_columns] = scaler.transform(x_test[numeric_columns])
+    x_train = pd.DataFrame(scaler.fit_transform(x_train), columns=x_train.columns)
+    x_test = pd.DataFrame(scaler.transform(x_test), columns=x_test.columns)
 
-    # Ensure all features are numeric
-    x_train = x_train.select_dtypes(include=['int64', 'float64'])
-    x_test = x_test.select_dtypes(include=['int64', 'float64'])
+    # Convert to PyTorch tensors
+    x_train = torch.tensor(x_train.values, dtype=torch.float32)
+    x_test = torch.tensor(x_test.values, dtype=torch.float32)
 
-    return x_train.values, y_train, x_test.values, y_test
+    # Encode target for classification tasks
+    if task_type in ['classification', 'c']:
+        label_encoder = LabelEncoder()
+        y_train = torch.tensor(label_encoder.fit_transform(y_train), dtype=torch.long)
+        y_test = torch.tensor(label_encoder.transform(y_test), dtype=torch.long)
+    elif task_type in ['regression', 'r']:
+        y_train = torch.tensor(y_train.values.astype(np.float32), dtype=torch.float32)
+        y_test = torch.tensor(y_test.values.astype(np.float32), dtype=torch.float32)
 
+    print(f"Training data shape: {x_train.shape}")
+    print(f"Testing data shape: {x_test.shape}")
+    print(f"Number of features: {x_train.shape[1]}")
+    if task_type in ['classification', 'c']:
+        print(f"Number of classes: {len(torch.unique(y_train))}")
+
+    return x_train, y_train, x_test, y_test
 
 # Define the neural network
 class NeuralNet(nn.Module):

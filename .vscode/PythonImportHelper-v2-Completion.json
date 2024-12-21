@@ -256,7 +256,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def load_data(train_file_path, test_file_path, task_type='classification'):\n    \"\"\"\n    Load and preprocess data from CSV files.\n    Args:\n        train_file_path (str): Path to the training dataset CSV.\n        test_file_path (str): Path to the testing dataset CSV.\n        task_type (str): Either 'classification' or 'regression'.\n    Returns:\n        x_train, y_train, x_test, y_test: Preprocessed datasets.\n    \"\"\"",
+        "peekOfCode": "def load_data(train_file_path, test_file_path, task_type='classification'):\n    \"\"\"\n    Load and preprocess data from CSV files.\n    \"\"\"\n    print(f\"Loading training data from {train_file_path}...\")\n    train_data = pd.read_csv(train_file_path)\n    print(f\"Loading testing data from {test_file_path}...\")\n    test_data = pd.read_csv(test_file_path)\n    # Target column: 'pathology'\n    target_column = 'pathology'",
         "detail": "python_version.main",
         "documentation": {}
     },
