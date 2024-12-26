@@ -283,7 +283,7 @@
         "kind": 2,
         "importPath": "python_version.main",
         "description": "python_version.main",
-        "peekOfCode": "def main():\n    dataset_choice = int(input(\n        \"Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): \").strip())\n    epochs = int(input(\"Enter the number of training epochs: \").strip())\n    # Load dataset\n    if dataset_choice == 1:\n        x_train, y_train, x_test, y_test = load_mnist()\n       #print(\"X_train shape:\", x_train.shape)\n        #print(\"y_train shape:\", y_train.shape)\n        #print(\"X_test shape:\", x_test.shape)",
+        "peekOfCode": "def main():\n    device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n    dataset_choice = int(input(\n        \"Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): \").strip())\n    epochs = int(input(\"Enter the number of training epochs: \").strip())\n    # Load dataset\n    if dataset_choice == 1:\n        x_train, y_train, x_test, y_test = load_mnist()\n       #print(\"X_train shape:\", x_train.shape)\n        #print(\"y_train shape:\", y_train.shape)",
         "detail": "python_version.main",
         "documentation": {}
     }

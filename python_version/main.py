@@ -90,10 +90,28 @@ def load_data(train_file_path, test_file_path, task_type='classification'):
     # Target column: 'pathology'
     target_column = 'pathology'
 
-    # Convert pathology to binary (0 for benign, 1 for malignant)
+# Convert pathology to binary (0 for benign, 1 for malignant)
     pathology_map = {'BENIGN': 0, 'MALIGNANT': 1}
     train_data[target_column] = train_data[target_column].map(pathology_map)
     test_data[target_column] = test_data[target_column].map(pathology_map)
+    
+    # Handle missing target labels
+    print(f"Before handling missing labels: {train_data[target_column].isna().sum()} missing in training set.")
+    print(f"Before handling missing labels: {test_data[target_column].isna().sum()} missing in testing set.")
+
+    # Drop rows with missing target labels
+    train_data = train_data.dropna(subset=[target_column])
+    test_data = test_data.dropna(subset=[target_column])
+
+    # Debugging: Check unique values again
+    print(f"After handling missing labels, unique training labels: {train_data[target_column].unique()}")
+    print(f"After handling missing labels, unique testing labels: {test_data[target_column].unique()}")
+
+
+    # Debugging: Check unique values in target column
+    print(f"Unique labels in training set: {train_data[target_column].unique()}")
+    print(f"Unique labels in testing set: {test_data[target_column].unique()}")
+
 
     # Handle missing values and preprocess features
     numeric_columns = train_data.select_dtypes(include=['number']).columns.tolist()
@@ -201,7 +219,13 @@ def evaluate_model(model, x_test, y_test, device, task_type='classification'):
         
         elif task_type in ['classification', 'c']:
             # Existing classification evaluation code remains the same
-            probabilities = torch.softmax(test_outputs, dim=1).cpu().numpy()
+            # For binary classification, calculate probabilities for both classes
+            if test_outputs.shape[1] == 1:
+                probabilities = torch.sigmoid(test_outputs).cpu().numpy()
+                probabilities = np.hstack([1 - probabilities, probabilities])  # Add probabilities for class 0 and class 1
+            else:
+                probabilities = torch.softmax(test_outputs, dim=1).cpu().numpy()
+
             predictions = np.argmax(probabilities, axis=1)
             y_true = y_test.cpu().numpy()
             y_pred = predictions
@@ -222,6 +246,7 @@ def evaluate_model(model, x_test, y_test, device, task_type='classification'):
             print("\nClassification Report:\n")
             print(report)
 
+            # Compute ROC curve and AUC for each class
             # Compute ROC curve and AUC for each class
             n_classes = probabilities.shape[1]
             y_true_binarized = label_binarize(y_true, classes=np.arange(n_classes))
@@ -251,8 +276,15 @@ def evaluate_model(model, x_test, y_test, device, task_type='classification'):
             print(f"\nMacro-average AUC: {macro_auc:.4f}")
 
 
+
 # Main function
 def main():
+    
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    
+    
     dataset_choice = int(input(
         "Choose the dataset to use (1 for MNIST, 2 for Fashion MNIST, 3 for CIFAR-10, 4 for Custom CSV Data): ").strip())
     epochs = int(input("Enter the number of training epochs: ").strip())
@@ -291,11 +323,24 @@ def main():
         input_dim = x_train.shape[1]
         output_dim = 2  # Binary classification (benign/malignant)
 
-        # Convert to tensors
-        x_train = torch.tensor(x_train, dtype=torch.float32)
-        x_test = torch.tensor(x_test, dtype=torch.float32)
-        y_train = torch.tensor(y_train, dtype=torch.long)
-        y_test = torch.tensor(y_test, dtype=torch.long)
+        # Ensure labels are valid
+        print(f"Before conversion, unique y_train: {np.unique(y_train)}")
+        print(f"Before conversion, unique y_test: {np.unique(y_test)}")
+
+        # Convert labels to integers
+        y_train = y_train.astype(int)
+        y_test = y_test.astype(int)
+
+        # Check for invalid values
+        assert set(np.unique(y_train)).issubset({0, 1}), "y_train contains invalid labels!"
+        assert set(np.unique(y_test)).issubset({0, 1}), "y_test contains invalid labels!"
+
+        # Convert to PyTorch tensors
+        x_train = torch.tensor(x_train.reshape(-1, input_dim), dtype=torch.float32)
+        x_test = torch.tensor(x_test.reshape(-1, input_dim), dtype=torch.float32)
+        y_train = torch.tensor(y_train, dtype=torch.long, device=device)
+        y_test = torch.tensor(y_test, dtype=torch.long, device=device)
+
     else:
         raise ValueError("Invalid dataset choice!")
 
@@ -307,7 +352,6 @@ def main():
     y_test = torch.tensor(y_test, dtype=torch.float32 if task_type in ['regression', 'r'] else torch.long)
 
     # Initialize model, loss function, and optimizer
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = NeuralNet(input_dim, output_dim).to(device)
     criterion = nn.MSELoss() if task_type in ['regression', 'r'] else nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
